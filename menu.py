@@ -133,24 +133,13 @@ class StartNewGame(Menu):
 		super(StartNewGame, self).__init__()
 		self.welcome_message = "[+] Starting A New Game."
 		self.prompt_message = "1. Easy\n2. Medium\n3. Hard\n4. Exit\n"
-	
-	def easy(self):
-		raise NotImplementedError("[!] Implemenation Needed!")
-
-	def medium(self):
-		raise NotImplementedError("[!] Implemenation Needed!")
-
-	def hard(self):
-		raise NotImplementedError("[!] Implemenation Needed!")
+		self.difficulty_lookup = {"1" : "easy","2" : "medium","3" : "hard"}
 
 	def start(self):
 		selection = self.prompt()
-		if int(selection) == 1: 
-			return self.easy()
-		if int(selection) == 2: 
-			return self.medium()
-		if int(selection) == 3: 
-			return self.hard()
+		if int(selection) > 0 and int(selection) < 4: 
+			print " [+] Creating A New Game With " + self.difficulty_lookup[str(selection)] + " Difficulty."
+			return "start_new_game " + self.difficulty_lookup[str(selection)]
 		if int(selection) == 4: 
 			self.exit()
 

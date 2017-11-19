@@ -17,6 +17,7 @@ class Client(object):
 		self.host = host
 		self.port = port
 		self.menu = Initial()
+		self.game = None
 
 		try:
 			self.s.connect((self.host,self.port))
@@ -29,13 +30,15 @@ class Client(object):
 			sys.exit()
 
 	def receive(self):
-		return self.s.recv(1024)
+		data = self.s.recv(1024)
+		if data != "":
+			return data
 
 	def package(self,response):
 		return response
 
 	def unpack(self,response):
-		if server_response != "":
+		if server_response != "" and server_response != None:
 			r = server_response.strip().split()
 			if DEBUG:
 				print "Server Response: " , r
@@ -43,9 +46,8 @@ class Client(object):
 				return r[0],r[1:]
 			elif len(r) == 1:
 				return r[0]
-			else:
-				print  "[-] Empty Server Response."
-				sys.exit()
+		else:
+			raise ValueError("[-] Empty Server Response.")
 
 	def update_menu(self,menu):
 		if menu == "initial":
@@ -59,6 +61,8 @@ class Client(object):
 	def process(self,command,parameters):
 		if DEBUG:
 			print "Processing " + str(command) + str(parameters)
+		if command == "game_state":
+			print parameters[0]
 		if command == "game":
 			if len(parameters) > 0:
 				if parameters[0] == "success":
@@ -77,6 +81,7 @@ class Client(object):
 							print "[+] Sorry, That Account Name Is Already Taken.\n"
 			else:
 				raise ValueError("[-] No Parameters Found In Sever Response.")
+
 			self.update_menu(command)
 		if command == "hall":
 			if len(parameters) > 0:
@@ -98,11 +103,14 @@ if __name__ == "__main__":
 	client = Client()
 	while True:
 		user_response = client.start()
-		print user_response
+		print user_response + "\n"
+
 		packet = client.package(user_response)
 		if DEBUG:
 			print "Sending Packet ", packet
+
 		client.send(packet)
+
 		server_response = client.receive()
 		if DEBUG:
 			print server_response
