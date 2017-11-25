@@ -1,79 +1,40 @@
 # CODY FALZONE 
 import sys
 
+DEBUG = True
+
 
 class Menu(object):
 	def __init__(self):
 		self.welcome_message = "[!] Base Class Welcome Message."
 		self.prompt_message = "[!] Base Class Prompt Message."
+		self.number_of_options = None
 
 	def hall(self):
 		return "hall"
 
 	def exit(self):
-		print "[-] Goodbye!"
-		sys.exit()
+		return "[-] Goodbye!"
 
 	def welcome(self):
-		print self.welcome_message
+		return self.welcome_message
 
 	def prompt(self):
-		while True:
-			selection = raw_input(self.prompt_message)
-			if selection > "0" and selection < "5": 
-				return selection
-			print "[-] Please Enter An Integer Value Corresponding To A Valid Option."
+		return self.prompt_message
 
-	def start(self):
+	def valid_input_string(self, input_string):
+		if input_string == "":
+			return False
+		return True
+
+	def empty_respose(self):
+		return "[-] It looks like you entered Nothing.\n"
+
+	def process(self, selection):
 		raise NotImplementedError
-		
-		
 
-
-class Login(Menu):
-	def __init__(self):
-		super(Login, self).__init__()
-		self.welcome_message = "[+] Let's Get You Logged In!\n"
-		self.prompt_message = "[-] Login Prompt Message.\n"
-
-	def start(self):
-		while True:	
-			user_name = raw_input("[!] Enter Your User Name.\n").strip()
-			if user_name == "":
-				print "[-] It looks like you entered Nothing, Please Re-Enter Your User Name.\n"	
-			else:
-				break
-		while True:	
-			password = raw_input("[!] Enter Your Password.\n").strip()
-			if password == "":
-				print "It looks like you entered Nothing, Please Re-Enter Your Password.\n"
-			else:
-				break
-
-		print "[+] Greetings " + str(user_name) + "!"
-		print "[+] Fetching Your Information....\n"
-		
-		return "login" + " " + str(user_name) + " " + str(password)
-
-class MakeUser(Menu):
-	def __init__(self):
-		super(MakeUser, self).__init__()
-		self.welcome_message = "[+] Please Choose A User Name and Password (No Spaces). It will be used if not already taken. \n"
-		self.promt_message = "[!] Make User Prompt Called."
-
-	def start(self):
-		while True:	
-			user_name = raw_input("[!] What would you like as your User Name?\n")
-			if user_name == None:
-				print "[-] It looks like you entered Nothing, Please Re-Enter Your Desired User Name. \n"	
-			break
-		while True:	
-			password = raw_input("[!] What would you like as Password?\n")
-			if password == None:
-				print "[-] It looks like you entered Nothing, Please Re-Enter Your Desired Password. \n"	
-			break
-
-		return "make_user" + " " + str(user_name) + " " + str(password)
+	def valid_option(self, selection):
+		return selection > "0" and selection <= self.number_of_options
 
 	
 class Initial(Menu):
@@ -81,26 +42,55 @@ class Initial(Menu):
 		super(Initial,self).__init__()
 		self.welcome_message = "[+] Welcome to The Multiplayer Hangman!"
 		self.prompt_message = "1. Login \n2. Make New User\n3. Hall Of Fall\n4. Exit\n"
+		self.number_of_options = "4"
 
-	def login(self):
-		menu = Login()
-		return menu.start()
+	def process(self,selection):
+		if DEBUG:
+			print "[!] In Menu Process..."
+			print "Selection: " + str(selection)
 
-	def make_user(self):
-		menu = MakeUser()
-		return menu.start()
-	
-	def start(self):
-		self.welcome()	
-		selection = self.prompt()
-		if int(selection) == 1: 
-			return self.login()
-		if int(selection) == 2: 
-			return self.make_user()
-		if int(selection) == 3: 
-			return self.hall()
-		if int(selection) == 4: 
-			self.exit()
+		if self.valid_option(str(selection).strip()):	
+			print " Returning Based on: " + selection
+			if int(selection) == 1: 
+				return "update_menu login"
+			if int(selection) == 2: 
+				return "update_menu make_user"
+			if int(selection) == 3: 
+				return  "hall"
+			if int(selection) == 4: 
+				return "exit"
+		else:
+			return "fail"
+
+class Login(Menu):
+	def __init__(self):
+		super(Login,self).__init__()
+		self.welcome_message ="[+] Let's Get You Logged In! \n"
+		
+	def get_user_name(self):
+		return "[!] Enter Your User Name.\n"
+
+	def get_user_password(self):
+		return "[!] Enter Your Password.\n"
+
+	def successful_login(self, user_name):
+		return "[+] Greetings " + str(user_name) + "! \n[+] Fetching Your Information....\n"
+
+class Signup(Menu):
+	def __init__(self):
+		super(Signup,self).__init__()
+		self.welcome_message ="[+] Let's Create An Account For You.\n[+] Please Choose A User Name and Password (No Spaces). It will be used if not already taken. \n"
+
+	def pick_user_name(self):
+		return "[!] What would you like as your User Name?\n"
+
+	def pick_user_password(self):
+		return "[!] What would you like as Password?\n"
+
+	def successful_signup(self):
+		return "[!] Account Creation Successful."
+		
+
 
 
 class Game(Menu):
@@ -108,40 +98,43 @@ class Game(Menu):
 		super(Game,self).__init__()
 		self.welcome_message = "[+] You Have Logged In! Let's Get Playing!\n"
 		self.prompt_message = "1. Start A New Game\n2. Get A List Of The Current Games\n3. Hall Of Fame\n4. Exit\n" 
+		self.number_of_options = "4"
 	
-	def start_new_game(self):
-		menu = StartNewGame()
-		return menu.start()
+	def process(self,selection):
+		if DEBUG:
+			print "[!] In Menu Process..."
+			print "Selection: " + str(selection)
 
-	def get_list_of_games(self):
-		pass
+		if self.valid_option(str(selection).strip()):	
+			print " Returning Based on: " + selection
+			if int(selection) == 1: 
+				return "update_menu start_new_game"
+			if int(selection) == 2: 
+				return "games_list"
+			if int(selection) == 3: 
+				return  "hall"
+			if int(selection) == 4: 
+				return "exit"
+		else:
+			return "fail"
 
-	def start(self):
-		self.welcome()
-		selection = self.prompt()
-		if int(selection) == 1: 
-			return self.start_new_game()
-		if int(selection) == 2: 
-			return self.get_list_of_games()
-		if int(selection) == 3: 
-			return self.hall()
-		if int(selection) == 4: 
-			self.exit()
 	
 class StartNewGame(Menu):
 	def __init__(self):
 		super(StartNewGame, self).__init__()
-		self.welcome_message = "[+] Starting A New Game."
-		self.prompt_message = "1. Easy\n2. Medium\n3. Hard\n4. Exit\n"
+		self.welcome_message = "[+] Lets Start A New Game."
+		self.prompt_message = "[!] Please Select A Difficulty.\n1. Easy\n2. Medium\n3. Hard\n4. Exit\n"
 		self.difficulty_lookup = {"1" : "easy","2" : "medium","3" : "hard"}
+		self.number_of_options = "4"
+	
+	def process(self,selection):
+		if DEBUG:
+			print "[!] In Menu Process..."
+			print "Selection: " + str(selection)
 
-	def start(self):
-		selection = self.prompt()
-		if int(selection) > 0 and int(selection) < 4: 
-			print " [+] Creating A New Game With " + self.difficulty_lookup[str(selection)] + " Difficulty."
-			return "start_new_game " + self.difficulty_lookup[str(selection)]
-		if int(selection) == 4: 
-			self.exit()
+		if self.valid_option(str(selection).strip()):	
+			print " Returning Based on: " + selection
+			return "create_new_game " + self.difficulty_lookup[str(selection)]
 
 if __name__ == "__main__":
 	instance = ClientMenu()
