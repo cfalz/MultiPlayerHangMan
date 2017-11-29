@@ -73,6 +73,9 @@ class Server(object):
 		self.s.listen(self.connections)
 
 			
+	def send(self,connection,data):
+		time.sleep(0.1)
+		connection.send(data)
 
 	def receive(self,connection):
 		return connection.recv(5012)
@@ -129,11 +132,6 @@ class Server(object):
 				player_thread.start()
 				
 
-	def check_player_queue(q):	
-		while not q.empty():
-			player,game = q.pop()
-			self.game_lookup[player] = game
-
 	def listen(self,player,game):
 		while True:
 			connection, address = self.s.accept()
@@ -167,21 +165,21 @@ class Server(object):
 		menu = Login()
 		user_name = ""
 		time.sleep(SLEEP)
-		connection.send(menu.welcome() + menu.get_user_name())
+		self.send(connection, "response_required@" + menu.welcome() + menu.get_user_name())
 		user_name = self.receive(connection)
 		if DEBUG:
 			print "." + user_name + "."
 		while True:
 			while not menu.valid_input_string(user_name):
 				time.sleep(SLEEP)
-				connection.send(menu.get_user_name())
+				self.send(connection, "response_required@" + menu.get_user_name() + "\n")
 				user_name = self.receive(connection)
 				if DEBUG:
 					print "." + user_name + "."
 			password = ""
 			while not menu.valid_input_string(password):
 				time.sleep(SLEEP)
-				connection.send(menu.get_user_password())
+				self.send(connection, "response_required@" + menu.get_user_password() + "\n")
 				password = self.receive(connection)
 				if DEBUG:
 					print "." + password + "."
@@ -191,6 +189,7 @@ class Server(object):
 				menu.successful_login(user_name)
 				self.update_menu(["game",connection])
 			else:
+				self.send(connection, "[-] Incorrect Login Attempt. Please Try Again.\n")
 				user_name = ""
 				password = ""
 
@@ -201,14 +200,14 @@ class Server(object):
 			print "[!] Initializing Player..."
 		menu = Initial()
 		time.sleep(SLEEP)
-		connection.send(menu.welcome())
+		self.send(connection, menu.welcome())
 		if DEBUG:
 			print "[!] Waiting for Player Reponse of Initial Menu..."
 		while True:
 			if DEBUG: 
 				print "[!] Sending Initial Prompt."
 			time.sleep(SLEEP)
-			connection.send(menu.prompt())
+			self.send(connection, "response_required@" + menu.prompt() + "\n[!] Please Select An Option.\n")
 			user_response = self.receive(connection)
 			if DEBUG: 
 				print "[!] Checking " + "." + user_response + "."
@@ -222,18 +221,18 @@ class Server(object):
 	def games_list(self,parameters):
 		connection = parameters[0]
 		prompt = "\n".join([ "Game: " + str(game.number) for game in self.games ])
-		connection.send("[+] Please Enter The Number For A Game From The List Of Games.\n" + prompt + "\n")
+		self.send(connection, "response_required@ " + "[+] Please Enter The Number For A Game From The List Of Games.\n" + prompt + "\n")
 		selection = self.receive(connection)
 		print "[+] Request To Join Game: " + str(selection)
 		if int(selection) <= len(self.games):
+			self.send(connection, "[!] Attempting to join Game " + str(selection))
 			select = int(selection)
 			self.join_game(self.user_lookup[connection],self.games[select], connection)
 
 	def join_game(self, player, game, connection):
+		self.send(connection, "[!] Please Wait While You Are Connected To Game " + str(game.number)+ "...\n") 
 		self.game_lookup[player] = game
 		game.add_player(player, connection)
-		print game
-		print self.game_lookup.values()
 		while game in self.game_lookup.values():
 			pass
 		self.game(connection)
@@ -242,16 +241,17 @@ class Server(object):
 	def signup(self,connection):
 		while True:
 			menu = Signup() 
+			self.send(connection, menu.welcome())
 			user_name = ""
 			while not self.valid_input_string(user_name):
 				time.sleep(SLEEP)
-				user_name = connection.send(menu.pick_user_name())
+				user_name = self.send(connection, "response_required@ " + menu.pick_user_name())
 			password = ""
 			while not self.valid_input_string(password):
-				password = connection.send(menu.pick_user_password())
+				password = self.send(connection, "response_required@ " + menu.pick_user_password())
 			if self.make_user("make_user" [user_name,password]):
 				time.sleep(SLEEP)
-				connection.send(menu.successful_signup())
+				self.send(connection, menu.successful_signup())
 				return
 
 	def game(self, connection):
@@ -260,7 +260,8 @@ class Server(object):
 			if DEBUG: 
 				print "[!] Sending Game Prompt."
 			time.sleep(SLEEP)
-			connection.send(menu.prompt())
+			self.send(connection, menu.welcome())
+			self.send(connection, "response_required@" + menu.prompt())
 			user_response = self.receive(connection)
 			if DEBUG: 
 				print "[!] Checking " + "." + user_response + "."
@@ -272,6 +273,8 @@ class Server(object):
 					print "[!] Calling server process with command: " , command
 				if command != "fail":
 					self.process(command, connection)
+			else:
+				self.send(connection, "[-] Invalid Selection.") 
 		
 
 	def make_user(self,parameters):
@@ -287,7 +290,7 @@ class Server(object):
 		menu.welcome()
 		while True:
 			time.sleep(SLEEP)
-			connection.send(menu.prompt())
+			self.send(connection, "response_required@ " + menu.prompt())
 			user_response = self.receive(connection)
 			if DEBUG: 
 				print "[!] Checking " + "." + user_response + "."
@@ -316,18 +319,24 @@ class Server(object):
 	
 	def run_game(self, game):
 		for connection in game.connections:
-			connection.send(game.welcome()+ "\n [!] Press Any Key To Proceed.")
-		proceed = self.receive(connection)
+			self.send(connection, game.welcome()+ "\n")
+			time.sleep(0.1)
+
 		game_over = False
 		while not game_over:
 			current_turn = game.update_turn()
+			if DEBUG:
+				print "connections:", self.connections
+
 			for connection in game.connections:
-				connection.send("\n  **** ||-|| //\\ ||\|| |__\ ||\/|| //\\ ||\|| **** \nHANGMAN  On " + str(game.difficulty).upper() + " Difficulty\n\n" + game.get_state() + "\n\n" + "It is " + str(game.turn) + "'s turn!.\n\n")
-			for connection in game.connections:
-				if game.turn == self.user_lookup[connection]:
-					c = self.receive(connection)
-					game_over = game.update_player_state(current_turn, c)
-		proceed = self.receive(connection)
+				self.send(connection, "\n  **** HANGMAN **** \n Game " + str(game.number) + "\n" +  " On " + str(game.difficulty).upper() + " Difficulty\n") 
+				self.send(connection, game.get_state() + "\n" + "It is " + self.user_lookup[game.turn] + "'s turn!.\n")
+
+			self.send(game.turn, "response_required@" + "[+] It's Your Turn. Please Guess A Character.")
+			c = self.receive(game.turn)
+			game_over = game.update_player_state(self.user_lookup[current_turn], c)
+		for connection in game.connections:
+			connection.send("[!] Game Over...Returning To The Game Menu...")
 		return True
 		
 

@@ -2,7 +2,7 @@ import socket
 import time
 from menu import *
 
-DEBUG = True
+DEBUG = 0
 
 class Client(object):
 	def __init__(self,host="localhost",port=9046):
@@ -30,7 +30,7 @@ class Client(object):
 			sys.exit()
 
 	def receive(self):
-		return self.s.recv(5012)
+		return self.s.recv(16384)
 
 
 	def send(self):
@@ -42,14 +42,24 @@ class Client(object):
 				return
 			print "[-] It Looks Like You Entered Nothing..."
 
-	
-
+	def response_required(self, message):
+		if len(message.split("@")) > 1:
+			return True
+		return False
+		
 
 if __name__ == "__main__":
 	client = Client()
 	while True:
-		print client.receive()
-		client.send()
+		data = client.receive()
+		
+		if client.response_required(data):
+			print data.split("@")[1]
+			client.send()
+
+		else:
+			if data != "":
+				print data
 			
 		
 

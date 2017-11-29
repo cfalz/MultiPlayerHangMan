@@ -1,6 +1,8 @@
 from random import *
 from words import wordlist
 
+DEBUG = 1
+
 class HangMan(object):
 	def __init__(self, difficulty="easy", word = wordlist[randint(0,len(wordlist) - 1)], game_id = 0):
 		self.number = game_id
@@ -53,25 +55,24 @@ class HangMan(object):
 	def get_players_states(self):
 		player_states = ""
 		for name in self.players:
-			print "Name: ", name
-			print "Turn: ", self.turn
 			player_states += name + "       " +  str(self.player_score[name])
-			if str(self.turn) == str(name):
+			i = self.players.index(name)
+			if str(self.turn) == self.connections[i]:
 				player_states += " * "
 			player_states+="\n"
 		return player_states
 	
 	def update_turn(self):
 		if self.turn == None:
-			self.turn = self.players[0]
+			self.turn = self.connections[0]
 			return self.turn
-		i = self.players.index(self.turn)
-		self.turn = self.players[(i+1)%len(self.players)]
+		i = self.connections.index(self.turn)
+		self.turn = self.connections[(i+1)%len(self.connections)]
 		return self.turn
 				
 	
 	def get_state(self):
-		return " ".join(self.word_state) + "\n" + self.get_players_states() +"\n[!] Guessed Characters: " + ",".join(self.character_guesses) + "\n\n"
+		return " ".join(self.word_state) + "\n" + self.get_players_states() +"\n[!] Guessed Characters: " + ",".join(self.character_guesses) + "\n"
 		
 
 if __name__ == "__main__":
