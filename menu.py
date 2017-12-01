@@ -14,7 +14,7 @@ class Menu(object):
 		return "hall"
 
 	def exit(self):
-		return "[-] Goodbye!"
+		return "\n[-] Goodbye!"
 
 	def welcome(self):
 		return self.welcome_message
@@ -28,7 +28,7 @@ class Menu(object):
 		return True
 
 	def empty_respose(self):
-		return "[-] It looks like you entered Nothing.\n"
+		return "\n[-] It looks like you entered Nothing.\n"
 
 	def process(self, selection):
 		raise NotImplementedError
@@ -68,10 +68,10 @@ class Login(Menu):
 		self.welcome_message ="[+] Let's Get You Logged In! \n"
 		
 	def get_user_name(self):
-		return "[!] Enter Your User Name.\n"
+		return "\n[!] Enter Your User Name.\n"
 
 	def get_user_password(self):
-		return "[!] Enter Your Password.\n"
+		return "\n[!] Enter Your Password.\n"
 
 	def successful_login(self, user_name):
 		return "[+] Greetings " + str(user_name) + "! \n[+] Fetching Your Information....\n"
@@ -79,16 +79,16 @@ class Login(Menu):
 class Signup(Menu):
 	def __init__(self):
 		super(Signup,self).__init__()
-		self.welcome_message ="[+] Let's Create An Account For You.\n[+] Please Choose A User Name and Password (No Spaces). It will be used if not already taken. \n"
+		self.welcome_message ="\n[+] Let's Create An Account For You.\n[+] Please Choose A User Name and Password (No Spaces). It will be used if not already taken. \n"
 
 	def pick_user_name(self):
-		return "[!] What would you like as your User Name?\n"
+		return "\n[!] What would you like as your User Name?\n"
 
 	def pick_user_password(self):
-		return "[!] What would you like as Password?\n"
+		return "\n[!] What would you like as Password?\n"
 
 	def successful_signup(self):
-		return "[!] Account Creation Successful."
+		return "\n[!] Account Creation Successful."
 		
 
 

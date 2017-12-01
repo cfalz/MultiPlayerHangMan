@@ -42,6 +42,11 @@ class Client(object):
 				return
 			print "[-] It Looks Like You Entered Nothing..."
 
+	def exit(self, message):
+		if len(message.split("quit ")) > 1:
+			return True
+		return False
+		
 	def response_required(self, message):
 		if len(message.split("@")) > 1:
 			return True
@@ -56,12 +61,10 @@ if __name__ == "__main__":
 		if client.response_required(data):
 			print data.split("@")[1]
 			client.send()
-
+		elif client.exit(data):
+			print data.split("quit")[1]
+			sys.exit()
 		else:
 			if data != "":
 				print data
 			
-		
-
-
-
