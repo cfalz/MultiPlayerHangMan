@@ -1,12 +1,12 @@
 from random import *
 from words import wordlist
 
-DEBUG = 1
+DEBUG = False
 
 class HangMan(object):
-	def __init__(self, difficulty="easy", word = wordlist[randint(0,len(wordlist) - 1)], game_id = 0):
+	def __init__(self, difficulty="easy", words = wordlist, game_id = 0):
 		self.number = game_id
-		self.word = word
+		self.word = words[randint(0,len(words) - 1)]
 		self.difficulty = difficulty
 		self.welcome_message = "[+] Welcome To HangMan. \n[+] Game Is Set To " + str(self.difficulty).upper() + " Difficulty. \n"
 		self.word_state = [ "_" for i in range(len(self.word)) ]
@@ -27,7 +27,6 @@ class HangMan(object):
 		#self.player_score[player] = 0
 
 	def character_guess(self, character):
-		print "Checking " + str(character)
 		if len(character) > 1:
 			if character == self.word:
 				self.word_state = [ c for c in self.word ]

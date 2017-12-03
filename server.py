@@ -3,15 +3,17 @@ import threading
 import time
 import sys
 import Queue
+from repository import *
 from player import *
 from game import *
 from menu import *
 
-DEBUG = True
+DEBUG = False
 SLEEP = 0.1
 
+
 class Server(object):
-	def __init__(self,host="",port=9046, connections=10):
+	def __init__(self, accounts_repo, hall_of_fame_repo, words_repo, host="", port=9046, connections=10):
 		print "[+] Starting Hangman Server."
 		try:
 			self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -30,12 +32,21 @@ class Server(object):
 
 		#Limit Of Connections Server Will Allow
 		self.connections = connections
+
+		self.accounts_repo = accounts_repo
+		
+		self.hall_of_fame_repo = hall_of_fame_repo	
+
+		self.words_repo = words_repo
 		
 		#Accounts for Users. A user name maps to a Password
-		self.accounts = {"Cody" : "Falzone", "Admin" : "Admin"}
+		self.accounts = accounts_repo.get_data()
 
 		# Record of High Scores
-		self.hall_of_fame = {"Admin" : 0, "Cody" : 0}
+		self.hall_of_fame = hall_of_fame_repo.get_data()
+
+		# The WordList for HangMan
+		self.words = words_repo.get_data()
 
 		# Users that Are currently Connected to the Server.
 		self.connected_users = []
@@ -75,12 +86,12 @@ class Server(object):
 
 			
 	def send(self,connection,data):
+		time.sleep(SLEEP)
 		connection.send(data)
 
 	def receive(self,connection):
 		return connection.recv(5012)
 			
-
 	def exit(self, data):
 		print "data", data
 		connection = data[0]
@@ -141,13 +152,14 @@ class Server(object):
 	def start(self):
 		while True:
 			connection, address = self.s.accept()
+			if DEBUG:
+				print "New Connection: ", connection
+				print "New Address: ", address
 			if connection not in self.connected_users:
 				self.connected_users.append(connection)
 				player_thread = threading.Thread(name = "thread "+str(connection), target = self.run, args = (connection,))
 				player_thread.daemon = True
 				player_thread.start()
-				player_thread.join()
-				print "Hanging on by a thread..."	
 
 	""" Checks the user login information in the database. """
 	def check_login(self,parameters):
@@ -223,12 +235,13 @@ class Server(object):
 			user_response = self.receive(connection)
 			if DEBUG: 
 				print "[!] Checking " + "." + user_response + "."
-			if menu.valid_input_string(user_response):
-				if DEBUG:
-					print "[!] Calling server process with " , user_response
-				command = menu.process(user_response)
-				if command != "fail":
-					self.process(command, connection)
+			if DEBUG:
+				print "[!] Calling server process with " , user_response
+			command = menu.process(user_response)
+			if command != "fail":
+				self.process(command, connection)
+			else:
+				self.send(connection, "\n[-] Invalid Selection.\n")
 
 	def games_list(self,parameters):
 		connection = parameters[0]
@@ -252,9 +265,10 @@ class Server(object):
 		self.game_lookup[player] = game
 		self.players_lookup[game].append(player)
 		game.add_player(player)
-		while game in self.games:
+		while player in game.players:
 			pass
 		self.hall_of_fame[player.name] += player.score
+		self.hall_of_fame_repo.save(self.hall_of_fame)
 		self.game(player.connection)
 
 	""" Allows user to pick a username and password for account creation. """
@@ -273,6 +287,8 @@ class Server(object):
 				self.make_user([user_name,password])
 				self.send(connection, menu.successful_signup())
 				self.hall_of_fame[user_name] = 0
+				self.accounts_repo.save(self.accounts)
+				self.hall_of_fame_repo.save(self.hall_of_fame)
 				return
 			else:
 				self.send(connection, "[-] Account Creation Failed. That User Name Is Already Taken.\n")
@@ -288,14 +304,13 @@ class Server(object):
 			user_response = self.receive(connection)
 			if DEBUG: 
 				print "[!] Checking " + "." + user_response + "."
-			if menu.valid_input_string(user_response):
-				if DEBUG:
-					print "[!] Calling server process with " , user_response
-				command = menu.process(user_response)
-				if DEBUG:
-					print "[!] Calling server process with command: " , command
-				if command != "fail":
-					self.process(command, connection)
+			if DEBUG:
+				print "[!] Calling server process with " , user_response
+			command = menu.process(user_response)
+			if DEBUG:
+				print "[!] Calling server process with command: " , command
+			if command != "fail":
+				self.process(command, connection)
 			else:
 				self.send(connection, "[-] Invalid Selection.") 
 
@@ -321,6 +336,8 @@ class Server(object):
 				command = menu.process(user_response)
 				if command != "fail":
 					self.process(command, connection)
+				else:
+					self.send(connection, "[-] Invalid Selection.") 
 
 		
 	def create_new_game(self,parameters):
@@ -329,7 +346,7 @@ class Server(object):
 			connection = parameters[1]
 			user = self.user_lookup[connection]
 			player = Player(user, connection)
-			game = HangMan(parameters[0],game_id = len(self.games))
+			game = HangMan(parameters[0],words = self.words, game_id = len(self.games))
 			game.add_player(player)
 			self.games.append(game)
 			self.game_lookup[player] = game
@@ -341,6 +358,7 @@ class Server(object):
 			del self.players_lookup[game]
 			del self.game_lookup[player]
 			self.hall_of_fame[player.name] += player.score
+			self.hall_of_fame_repo.save(self.hall_of_fame)
 			self.game(connection)
 			
 	
@@ -351,12 +369,14 @@ class Server(object):
 		game_over = False
 		occurences = 0
 		while not game_over:
+			for connection in self.connected_users:
+				self.send(connection, "Players:" + ", ".join([player.name for player in game.players]))
+		
 			if occurences == 0:
 				current_turn = game.update_turn()
 
 			for player in game.players:
 				self.send(player.connection, "\n***********************\n***     HANGMAN     ***\n***********************\n[+] Game " + str(game.number) + "\n" +  " On " + str(game.difficulty).upper() + " Difficulty\n") 
-				time.sleep(0.05)
 				self.send(player.connection, game.get_state() + "\n" + "It is " + game.turn.name + "'s turn!.\n")
 
 			self.send(game.turn.connection, "response_required@" + "[+] It's Your Turn. Please Guess A Character.")
@@ -365,13 +385,12 @@ class Server(object):
 			if occurences == -1:
 				player = game.turn
 				self.send(player.connection, "[-] Incorrect Word Guess. Goodbye.")
+				current_turn = game.update_turn()
 				game.remove_player(player)
-				occurences = 0
 			else:
-				print "occurences: ", occurences
 				game.update_player_state(current_turn, occurences)
 				game_over = game.is_over(occurences)
-				print game_over
+
 		for player in game.players:
 			self.send(player.connection, "\n***********************\n***     HANGMAN     ***\n***********************\n[+] Game " + str(game.number) + "\n" +  "[+] On " + str(game.difficulty).upper() + " Difficulty\n") 
 			self.send(player.connection, game.get_state())
@@ -396,8 +415,34 @@ class Server(object):
 				self.send(connection, "\n")
 				return
 
+	def admin_process(self, selection):
+		if selection == "users":
+			print "\n".join([name for name in self.accounts.keys()])
+			
+		if selection == "words":
+			print "\n".join(self.words)
+
+		if selection == "add_word":
+			self.words.append(raw_input("Enter Your Word To Add To The List Of Words: \n"))
+			self.words_repo.save(self.words)
+			
+	
+	def sever_menu(self):
+		menu = SeverMenu()
+		while True:
+			print menu.welcome()
+			self.admin_process(menu.process(raw_input(menu.prompt() +"\n[+] Enter Response: ")))
+
 	
 if __name__ == "__main__":
-	server = Server()
-	server.start()
 
+	accounts = Repository("accounts.pkl")
+	hall = Repository("hall.pkl")
+	words = Repository("words.pkl")
+	server = Server(accounts, hall, words)
+
+	server_menu = threading.Thread(target=server.sever_menu, args=())
+	server_menu.daemon = True
+	server_menu.start()
+
+	server.start()

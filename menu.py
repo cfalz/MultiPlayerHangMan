@@ -1,7 +1,7 @@
 # CODY FALZONE 
 import sys
 
-DEBUG = True
+DEBUG = False
 
 
 class Menu(object):
@@ -34,7 +34,7 @@ class Menu(object):
 		raise NotImplementedError
 
 	def valid_option(self, selection):
-		return selection > "0" and selection <= self.number_of_options
+		return selection > 0 and selection <= self.number_of_options
 
 	
 class Initial(Menu):
@@ -42,25 +42,25 @@ class Initial(Menu):
 		super(Initial,self).__init__()
 		self.welcome_message = "[+] Welcome to The Multiplayer Hangman!"
 		self.prompt_message = "1. Login \n2. Make New User\n3. Hall Of Fall\n4. Exit\n"
-		self.number_of_options = "4"
+		self.number_of_options = 4
 
 	def process(self,selection):
 		if DEBUG:
 			print "[!] In Menu Process..."
 			print "Selection: " + str(selection)
 
-		if self.valid_option(str(selection).strip()):	
-			print " Returning Based on: " + selection
-			if int(selection) == 1: 
-				return "update_menu login"
-			if int(selection) == 2: 
-				return "update_menu make_user"
-			if int(selection) == 3: 
-				return  "hall"
-			if int(selection) == 4: 
-				return "exit"
-		else:
-			return "fail"
+		if selection.isdigit():	
+			if self.valid_option(int(selection.strip())): 
+				if int(selection) == 1: 
+					return "update_menu login"
+				if int(selection) == 2: 
+					return "update_menu make_user"
+				if int(selection) == 3: 
+					return  "hall"
+				if int(selection) == 4: 
+					return "exit"
+
+		return "fail"
 
 class Login(Menu):
 	def __init__(self):
@@ -79,7 +79,7 @@ class Login(Menu):
 class Signup(Menu):
 	def __init__(self):
 		super(Signup,self).__init__()
-		self.welcome_message ="\n[+] Let's Create An Account For You.\n[+] Please Choose A User Name and Password (No Spaces). It will be used if not already taken. \n"
+		self.welcome_message ="\n[+] Let's Create An Account For You.\n[+] Please Choose A User Name and Password. It will be used if not already taken. \n"
 
 	def pick_user_name(self):
 		return "\n[!] What would you like as your User Name?\n"
@@ -98,25 +98,23 @@ class Game(Menu):
 		super(Game,self).__init__()
 		self.welcome_message = "[+] You Have Logged In! Let's Get Playing!\n"
 		self.prompt_message = "1. Start A New Game\n2. Get A List Of The Current Games\n3. Hall Of Fame\n4. Exit\n" 
-		self.number_of_options = "4"
+		self.number_of_options = 4
 	
 	def process(self,selection):
 		if DEBUG:
 			print "[!] In Menu Process..."
 			print "Selection: " + str(selection)
-
-		if self.valid_option(str(selection).strip()):	
-			print " Returning Based on: " + selection
-			if int(selection) == 1: 
-				return "update_menu start_new_game"
-			if int(selection) == 2: 
-				return "games_list"
-			if int(selection) == 3: 
-				return  "hall"
-			if int(selection) == 4: 
-				return "exit"
-		else:
-			return "fail"
+ 		if selection.isdigit():	
+			if self.valid_option(int(selection.strip())):
+				if int(selection) == 1: 
+					return "update_menu start_new_game"
+				if int(selection) == 2: 
+					return "games_list"
+				if int(selection) == 3: 
+					return  "hall"
+				if int(selection) == 4: 
+					return "exit"
+		return "fail"
 
 	
 class StartNewGame(Menu):
@@ -125,17 +123,36 @@ class StartNewGame(Menu):
 		self.welcome_message = "[+] Lets Start A New Game."
 		self.prompt_message = "[!] Please Select A Difficulty.\n1. Easy\n2. Medium\n3. Hard\n4. Exit\n"
 		self.difficulty_lookup = {"1" : "easy","2" : "medium","3" : "hard"}
-		self.number_of_options = "4"
+		self.number_of_options = 4
 	
 	def process(self,selection):
 		if DEBUG:
 			print "[!] In Menu Process..."
 			print "Selection: " + str(selection)
+ 		if selection.isdigit():	
+			if self.valid_option(int(selection.strip())):
+				return "create_new_game " + self.difficulty_lookup[str(selection)]
 
-		if self.valid_option(str(selection).strip()):	
-			print " Returning Based on: " + selection
-			return "create_new_game " + self.difficulty_lookup[str(selection)]
+class SeverMenu(Menu):
+	def __init__(self):
+		super(SeverMenu,self).__init__()
+		self.welcome_message = "||||||||||||||||||||||||||\n||||||| Sever Menu ||||||| \n||||||||||||||||||||||||||\n"
+		self.prompt_message = "1. Current List Of Users \n2. Current List Of Words \n3. Add New Word \n"
+		self.number_of_options = 3
 
+	def process(self,selection):
+		if DEBUG:
+			print "[!] In Menu Process..."
+			print "Selection: " + str(selection)
+ 		if selection.isdigit():	
+			if self.valid_option(int(selection.strip())):
+				if int(selection) == 1: 
+					return "users"
+				if int(selection) == 2: 
+					return "words"
+				if int(selection) == 3: 
+					return  "add_word"
+	
 if __name__ == "__main__":
 	instance = ClientMenu()
 	#username, password = instance.make_user()
